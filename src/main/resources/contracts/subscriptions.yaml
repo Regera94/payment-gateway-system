@@ -1,0 +1,197 @@
+openapi: 3.0.3
+
+info:
+  title: Subscription API
+  version: 1.0.0
+  description: API for managing client subscriptions (create, list, unsubscribe)
+
+servers:
+  - url: /
+    description: Default server
+
+tags:
+  - name: Subscription
+    description: Subscription management endpoints
+
+paths:
+  /v1/api/subscriptions:
+    post:
+      tags: [Subscription]
+      summary: Create a new subscription
+      operationId: createSubscription
+      requestBody:
+        required: true
+        description: Subscription details
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionRequest"
+            examples:
+              sample:
+                value:
+                  clientId: "client123"
+                  callBackUrl: "https://example.com/callback"
+                  eventType: "PAYMENT_COMPLETED"
+      responses:
+        "201":
+          description: Subscription created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionResponse"
+              examples:
+                created:
+                  value:
+                    subscriptionId: 1001
+                    clientId: "client123"
+                    callBackUrl: "https://example.com/callback"
+                    eventType: "PAYMENT_COMPLETED"
+                    secretKey: "sk_test_abc123xyz"
+                    active: true
+                    createdAt: "2026-02-15T19:10:25"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+    get:
+      tags: [Subscription]
+      summary: Get subscriptions for a client
+      operationId: getClientSubscriptions
+      parameters:
+        - $ref: "#/components/parameters/ClientIdParam"
+      responses:
+        "200":
+          description: List of subscriptions for the given client
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubscriptionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /v1/api/subscriptions/{subscriptionId}:
+    delete:
+      tags: [Subscription]
+      summary: Unsubscribe
+      operationId: deleteSubscription
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionIdPathParam"
+      responses:
+        "204":
+          description: Successfully unsubscribed (no content)
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  parameters:
+    ClientIdParam:
+      name: clientId
+      in: query
+      required: true
+      description: Client identifier
+      schema:
+        type: string
+      example: "client123"
+
+    SubscriptionIdPathParam:
+      name: subscriptionId
+      in: path
+      required: true
+      description: Subscription ID
+      schema:
+        type: integer
+        format: int64
+      example: 1001
+
+  responses:
+    BadRequest:
+      description: Invalid request payload or parameters
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+          examples:
+            badRequest:
+              value:
+                message: "Validation failed"
+                details: "clientId must not be blank"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+          examples:
+            notFound:
+              value:
+                message: "Subscription not found"
+                details: "No subscription exists for id 1001"
+
+  schemas:
+    SubscriptionRequest:
+      type: object
+      required: [clientId, callBackUrl, eventType]
+      properties:
+        clientId:
+          type: string
+          description: Unique identifier of the client
+          example: "client123"
+        callBackUrl:
+          type: string
+          format: uri
+          description: Callback URL where events will be sent
+          example: "https://example.com/callback"
+        eventType:
+          type: string
+          description: Type of event subscribed to
+          example: "PAYMENT_COMPLETED"
+          # Optional:
+          # enum: [PAYMENT_CREATED, PAYMENT_COMPLETED, PAYMENT_FAILED]
+
+    SubscriptionResponse:
+      type: object
+      required: [subscriptionId, clientId, callBackUrl, eventType, secretKey, active, createdAt]
+      properties:
+        subscriptionId:
+          type: integer
+          format: int64
+          description: Unique subscription ID
+          example: 1001
+        clientId:
+          type: string
+          description: Unique identifier of the client
+          example: "client123"
+        callBackUrl:
+          type: string
+          format: uri
+          description: Callback URL
+          example: "https://example.com/callback"
+        eventType:
+          type: string
+          description: Event type subscribed to
+          example: "PAYMENT_COMPLETED"
+        secretKey:
+          type: string
+          description: Secret key used for signing callbacks
+          example: "sk_test_abc123xyz"
+        active:
+          type: boolean
+          description: Indicates if subscription is active
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Subscription creation timestamp
+          example: "2026-02-15T19:10:25"
+
+    ApiError:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Validation failed"
+        details:
+          type: string
+          example: "clientId must not be blank"
