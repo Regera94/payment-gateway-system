@@ -63,7 +63,25 @@ public class PaymentServIceImpl implements PaymentService {
 
     @Override
     public PaymentResponse completePayment(String orderId) {
-        return null;
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("Payment not found"));
+
+        payment.setStatus(Payment.PaymentStatus.COMPLETED);
+        payment = paymentRepository.save(payment);
+
+        log.info("Completed payment: {}", orderId);
+
+        // Publish event
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("orderId", payment.getOrderId());
+        eventData.put("customerId", payment.getCustomerId());
+        eventData.put("amount", payment.getAmount());
+        eventData.put("currency", payment.getCurrency());
+        eventData.put("status", payment.getStatus());
+
+        eventPublisher.publishEvent("payment.completed", orderId, eventData);
+
+        return mapToResponse(payment);
     }
 
 
