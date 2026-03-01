@@ -6,6 +6,7 @@ import com.gk.webhook_system.entities.WebhookSubscription;
 import com.gk.webhook_system.repositories.WebhookEventRepository;
 import com.gk.webhook_system.repositories.WebhookSubscriptionRepository;
 import com.gk.webhook_system.service.EventPublisherService;
+import com.gk.webhook_system.service.WebhookDeliveryService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import java.util.List;
 public class EventPublisherServiceImpl implements EventPublisherService {
     private final WebhookSubscriptionRepository subscriptionRepository;
     private final WebhookEventRepository eventRepository;
+    private final WebhookDeliveryService deliveryService;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -59,6 +61,8 @@ public class EventPublisherServiceImpl implements EventPublisherService {
 
                 log.info("Created webhook event {} for subscription {}",
                         event.getId(), subscription.getId());
+                // Deliver the webhook asynchronously
+                deliveryService.deliverWebhookAsync(event.getId());
 
             } catch (Exception e) {
                 log.error("Failed to create webhook event for subscription {}: {}",

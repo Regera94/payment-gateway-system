@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +27,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         try{
             log.info("Creating subscription for client: {}, event: {}",
                     subscriptionRequest.clientId(), subscriptionRequest.eventType());
+
+            Optional<WebhookSubscription> exists = webhookSubscriptionRepository
+                    .findByClientId(subscriptionRequest.clientId());
+
+            if (exists.isPresent()) {
+                throw new IllegalArgumentException("Client ID already exists");
+            }
 
             // Generate secret key
             String secretKey = security.generateSecretKey();
